@@ -10,9 +10,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import HoraspontoManager from '@/components/HoraspontoManager';
-import { ProjectSelector } from '@/components/shared/ProjectSelector';
-import { StageSelector } from '@/components/shared/StageSelector';
-import { TaskSelector } from '@/components/shared/TaskSelector';
+import { SearchableProjectSelector } from '@/components/shared/SearchableProjectSelector';
+import { SearchableStageSelector } from '@/components/shared/SearchableStageSelector';
+import { SearchableTaskSelector } from '@/components/shared/SearchableTaskSelector';
+import { TimePercentageInput } from '@/components/shared/TimePercentageInput';
 import { RecordItem } from '@/components/records/RecordItem';
 import { useRecords } from '@/hooks/useRecords';
 import type { Project, Stage, Task, HorasPonto } from '@/types/records';
@@ -230,69 +231,88 @@ const DayRecords: React.FC<DayRecordsProps> = ({ selectedDate, onRefresh }) => {
       </div>
 
       {showAddForm && (
-        <div className="bg-muted p-4 rounded-lg mb-6 space-y-4">
-          <h3 className="font-medium">Novo Registro</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <ProjectSelector
-              projects={projects}
-              value={newRecord.project_id}
-              onValueChange={(value) => setNewRecord({...newRecord, project_id: value, stage_id: '', task_id: ''})}
-            />
-            
-            <StageSelector
-              stages={getFilteredStages(newRecord.project_id)}
-              value={newRecord.stage_id}
-              onValueChange={(value) => setNewRecord({...newRecord, stage_id: value, task_id: ''})}
-              disabled={!newRecord.project_id}
-            />
-            
-            <TaskSelector
-              tasks={getFilteredTasks(newRecord.stage_id)}
-              value={newRecord.task_id}
-              onValueChange={(value) => setNewRecord({...newRecord, task_id: value})}
-              disabled={!newRecord.stage_id}
-            />
-            <div>
-              <Input
-                placeholder="Horas trabalhadas"
-                type="number"
-                step="0.1"
-                value={newRecord.worked_hours}
-                onChange={(e) => setNewRecord({...newRecord, worked_hours: e.target.value})}
-              />
-            </div>
-            <div>
-              <Input
-                placeholder="Porcentagem"
-                type="number"
-                max="100"
-                value={newRecord.percentage}
-                onChange={(e) => setNewRecord({...newRecord, percentage: e.target.value})}
-              />
-            </div>
-            <div className="md:col-span-2">
-              <Textarea
-                placeholder="Observação (opcional)"
-                value={newRecord.description}
-                onChange={(e) => setNewRecord({...newRecord, description: e.target.value})}
-              />
+        <div className="bg-muted/30 border rounded-lg p-6 mb-6 space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Novo Registro</h3>
+            <div className="text-sm text-muted-foreground">
+              Ponto do dia: {horasPonto?.total_hours || 0}h
             </div>
           </div>
-          <div className="flex space-x-2">
-            <Button onClick={handleAddRecord}>Salvar</Button>
-            <Button variant="outline" onClick={() => setShowAddForm(false)}>Cancelar</Button>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Projeto</label>
+                <SearchableProjectSelector
+                  projects={projects}
+                  value={newRecord.project_id}
+                  onValueChange={(value) => setNewRecord({...newRecord, project_id: value, stage_id: '', task_id: ''})}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-2 block">Etapa</label>
+                <SearchableStageSelector
+                  stages={getFilteredStages(newRecord.project_id)}
+                  value={newRecord.stage_id}
+                  onValueChange={(value) => setNewRecord({...newRecord, stage_id: value, task_id: ''})}
+                  disabled={!newRecord.project_id}
+                />
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-2 block">Tarefa (opcional)</label>
+                <SearchableTaskSelector
+                  tasks={getFilteredTasks(newRecord.stage_id)}
+                  value={newRecord.task_id}
+                  onValueChange={(value) => setNewRecord({...newRecord, task_id: value})}
+                  disabled={!newRecord.stage_id}
+                />
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <TimePercentageInput
+                hoursValue={newRecord.worked_hours}
+                percentageValue={newRecord.percentage}
+                onHoursChange={(value) => setNewRecord({...newRecord, worked_hours: value})}
+                onPercentageChange={(value) => setNewRecord({...newRecord, percentage: value})}
+                totalDayHours={horasPonto?.total_hours || 8}
+              />
+              
+              <div>
+                <label className="text-sm font-medium mb-2 block">Observação (opcional)</label>
+                <Textarea
+                  placeholder="Descreva as atividades realizadas..."
+                  value={newRecord.description}
+                  onChange={(e) => setNewRecord({...newRecord, description: e.target.value})}
+                  className="min-h-[80px] resize-none"
+                />
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t">
+            <Button onClick={handleAddRecord} className="flex-1 sm:flex-none">
+              <Plus className="h-4 w-4 mr-2" />
+              Salvar Registro
+            </Button>
+            <Button variant="outline" onClick={() => setShowAddForm(false)} className="flex-1 sm:flex-none">
+              Cancelar
+            </Button>
           </div>
         </div>
       )}
 
-      <div className="space-y-3">
+      <div className="space-y-4">
         {loading ? (
-          <div className="text-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <span className="ml-3 text-muted-foreground">Carregando registros...</span>
           </div>
         ) : filteredRecords.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            Nenhum registro encontrado para este dia.
+          <div className="text-center py-12 px-4">
+            <div className="text-muted-foreground mb-2">Nenhum registro encontrado para este dia.</div>
+            <p className="text-sm text-muted-foreground">Adicione seu primeiro registro clicando no botão "Adicionar" acima.</p>
           </div>
         ) : (
           filteredRecords.map((record) => (
@@ -304,6 +324,7 @@ const DayRecords: React.FC<DayRecordsProps> = ({ selectedDate, onRefresh }) => {
               tasks={tasks}
               onUpdate={handleUpdateRecord}
               onDelete={handleDeleteRecord}
+              totalDayHours={horasPonto?.total_hours || 8}
               getProjectName={getProjectName}
               getStageName={getStageName}
               getTaskName={getTaskName}
@@ -315,21 +336,23 @@ const DayRecords: React.FC<DayRecordsProps> = ({ selectedDate, onRefresh }) => {
       </div>
 
       {records.length > 0 && (
-        <div className="mt-6 pt-4 border-t">
-          <div className="flex justify-between items-center">
-            <span className="font-medium">Total:</span>
-            <div className="text-right">
-              <div className={cn(
-                "font-medium",
-                isOvertime && "text-destructive"
-              )}>
-                {totalHours}h ({totalPercentage}%)
-              </div>
-              {isOvertime && (
-                <div className="text-sm text-destructive">
-                  Excesso: {(totalHours - horasPonto!.total_hours).toFixed(1)}h
+        <div className="mt-8 pt-6 border-t border-border/50">
+          <div className="bg-gradient-to-r from-muted/30 to-muted/10 rounded-lg p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <span className="text-lg font-semibold text-foreground">Resumo do Dia:</span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <div className={cn(
+                  "text-lg font-bold",
+                  isOvertime ? "text-destructive" : "text-primary"
+                )}>
+                  {totalHours}h ({totalPercentage}%)
                 </div>
-              )}
+                {isOvertime && (
+                  <div className="text-sm font-medium text-destructive bg-destructive/10 px-2 py-1 rounded">
+                    Excesso: {(totalHours - horasPonto!.total_hours).toFixed(1)}h
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
